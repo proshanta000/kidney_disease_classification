@@ -1,0 +1,24 @@
+IMAGE_SIZE: [224, 224, 3]
+LEARNING_RATE: 0.01
+INCLUDE_TOP: False
+WEIGHTS: "imagenet"
+CLASSES: 4
+
+
+EPOCHS: 20
+BATCH_SIZE: 16
+AUGMENTATION: True
+
+
+CALLBACKS:
+  early_stopping:
+    monitor: "val_loss"
+    patience: 3
+    verbose: 1
+  model_checkpoint:
+    save_best_only: True
+    monitor: "val_loss"
+  reduce_lr_on_plateau:
+    monitor: "val_loss"
+    factor: 0.1
+    patience: 2

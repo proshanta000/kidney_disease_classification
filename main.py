@@ -1,6 +1,7 @@
 import os
 from KidneyCNN import logger
 from KidneyCNN.pipeline.stage_01_ingestion_pipline import DataIngestionPipeline
+from KidneyCNN.pipeline.stage_02_prepare_base_model import PrepareBaseModelPipeline
 
 
 """os.environ["MLFLOW_TRACKING_URI"]="https://dagshub.com/proshanta000/End_to_End_ml_project_chest_CT_scan.mlflow"
@@ -25,12 +26,12 @@ if __name__=='__main__':
     
 
 
-"""STAGE_NAME = "Prepare Base Model"
+STAGE_NAME = "Prepare Base Model"
 
 try:
     logger.info(f"**********************")
     logger.info(f">>>>>>>>>> stage {STAGE_NAME} Started <<<<<<<<<<<")
-    obj= PrepareBaseModelTranningPipline()
+    obj= PrepareBaseModelPipeline()
     obj.main()
     logger.info(f">>>>>>>>>> stage {STAGE_NAME} Completed <<<<<<<<<<<\n\nX============X")
 
@@ -38,7 +39,7 @@ except Exception as e:
     logger.exception(e)
     raise e
 
-
+"""
 STAGE_NAME = "Training"
 
 try:

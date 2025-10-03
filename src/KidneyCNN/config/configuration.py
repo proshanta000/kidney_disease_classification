@@ -1,6 +1,7 @@
 from KidneyCNN.constants import *
 from KidneyCNN.utils.common import read_yaml, create_directories
 from KidneyCNN.entity.config_entity import (DataIngestionConfig,
+                                            DataTransformationConfig,
                                             PrepareBaseModelConfig)
 
 
@@ -30,6 +31,29 @@ class ConfigurationManager:
         )
 
         return data_ingestion_config
+    
+    def get_data_transformation_config(self) -> DataTransformationConfig:
+        config = self.config.data_transformation
+        params = self.params
+
+        create_directories([config.root_dir])
+
+        data_transformation_config = DataTransformationConfig(
+            # Paths (from config.yaml)
+            # Input: Directory containing the 4 class subfolders
+            root_dir = config.root_dir,
+            data_split_dir = config.data_split_dir,
+
+            # Output: Directory where the train/val/,
+            
+            # Parameters (from params.yaml)
+            train_ratio = params.TRAIN_RATIO,
+            validation_ratio = params.VALIDATION_RATIO,
+            test_ratio = params.TEST_RATIO,
+            split_seed = params.SPLIT_SEED ,
+        )
+
+        return data_transformation_config
     
 
     def get_prepear_base_model_config(self) -> PrepareBaseModelConfig:

@@ -17,4 +17,5 @@ scipy
 Flask
 Flask-Cors
 setuptools
+split-folders==0.5.1
 -e .

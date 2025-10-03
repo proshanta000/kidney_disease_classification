@@ -8,6 +8,15 @@ class DataIngestionConfig:
     local_data_file:Path
     unzip_dir:Path
 
+@dataclass(frozen=True)
+class DataTransformationConfig:
+    root_dir: Path
+    data_split_dir: Path
+    train_ratio: float
+    validation_ratio: float
+    test_ratio: float
+    split_seed: int
+
 
 @dataclass(frozen=True)
 class PrepareBaseModelConfig:

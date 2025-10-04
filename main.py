@@ -4,14 +4,15 @@ from KidneyCNN.pipeline.stage_01_ingestion_pipline import DataIngestionPipeline
 from KidneyCNN.pipeline.stage_02_data_transformation_pipline import DataTransformationPipeline
 from KidneyCNN.pipeline.stage_03_prepare_base_model import PrepareBaseModelPipeline
 from KidneyCNN.pipeline.stage_04_traning_pipline import ModelTraningPipeline
+from KidneyCNN.pipeline.stage_05_model_evaluation_pipeline import ModelEvalutationPipeline
 
 
-"""os.environ["MLFLOW_TRACKING_URI"]="https://dagshub.com/proshanta000/End_to_End_ml_project_chest_CT_scan.mlflow"
+os.environ["MLFLOW_TRACKING_URI"]="https://dagshub.com/proshanta000/kidney_disease_classification.mlflow"
 os.environ["MLFLOW_TRACKING_USERNAME"]="proshanta000"
-os.environ["MLFLOW_TRACKING_PASSWORD"]="d856c7bfcbe6c5c979320b3160b26a5a3e1f4355"
+os.environ["MLFLOW_TRACKING_PASSWORD"]="1d2afccec4c7566b7e8d9ed3f00a41e1e86ae8fd"
 
 
-
+"""
 STAGE_NAME = "Data Ingestion Stage"
 
 
@@ -55,7 +56,7 @@ try:
 except Exception as e:
     logger.exception(e)
     raise e
-"""
+
 
 STAGE_NAME = "Training"
 
@@ -82,4 +83,4 @@ try:
 
 except Exception as e:
     logger.exception(e)
-    raise e"""
+    raise e

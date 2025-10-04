@@ -4,7 +4,8 @@ from KidneyCNN.utils.common import read_yaml, create_directories
 from KidneyCNN.entity.config_entity import (DataIngestionConfig,
                                             DataTransformationConfig,
                                             PrepareBaseModelConfig,
-                                            TrainingConfig)
+                                            TrainingConfig,
+                                            EvaluationConfig)
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
 
 
@@ -130,3 +131,22 @@ class ConfigurationManager:
             )
 
             return training_config
+    
+
+    def get_evalution_config(self) -> EvaluationConfig:
+        """
+        Provides the configuration for the model evaluation stage.
+        """
+        # Define the path to the validation data directory
+        validation_data = os.path.join(self.config.data_transformation.data_split_dir,  "val")
+        
+        # Create an EvaluationConfig object with the relevant settings
+        eval_config = EvaluationConfig(
+            path_of_model="artifacts/training/model.h5", # Path to the trained model
+            validation_data=Path(validation_data), # Path to the validation data
+            mlflow_uri="https://dagshub.com/proshanta000/kidney_disease_classification.mlflow", # MLflow tracking URI
+            all_params= self.params, # All model parameters for logging to MLflow
+            params_image_size= self.params.IMAGE_SIZE, # Image size for evaluation
+            params_batch_size= self.params.BATCH_SIZE # Batch size for evaluation
+        )
+        return eval_config

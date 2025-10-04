@@ -46,3 +46,16 @@ class TrainingConfig:
     params_image_size: list  # Image dimensions for training
     params_learning_rate: float  # Learning rate for the optimizer
     params_callbacks: Dict[str, Any]  # Dictionary of callbacks (e.g., EarlyStopping, ReduceLROnPlateau)
+
+
+@dataclass(frozen=True)
+class EvaluationConfig:
+    """
+    Configuration for the model evaluation stage.
+    """
+    path_of_model: Path  # Path to the trained model to be evaluated
+    validation_data: Path  # Path to the validation dataset
+    mlflow_uri: str  # MLflow tracking server URI
+    all_params: dict  # A dictionary containing all project parameters for logging
+    params_image_size: list  # Image dimensions for evaluation
+    params_batch_size: int  # Batch size for evaluation

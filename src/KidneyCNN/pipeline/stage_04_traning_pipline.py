@@ -1,6 +1,6 @@
 # Import necessary modules
 from KidneyCNN.config.configuration import ConfigurationManager
-from KidneyCNN.components.traning import Training
+from KidneyCNN.components.model_traning import Training
 from KidneyCNN import logger
 
 # Define a constant for the stage name, used for logging

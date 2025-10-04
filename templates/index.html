@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CT Scan Classifier</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .container {
+            max-width: 900px;
+        }
+        .card {
+            background-color: white;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .drop-area {
+            border: 2px dashed #d1d5db;
+            border-radius: 1rem;
+            transition: all 0.2s ease-in-out;
+        }
+        .drop-area.drag-over {
+            border-color: #3b82f6;
+            background-color: #e0f2fe;
+        }
+        .button {
+            transition: all 0.2s ease-in-out;
+        }
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        #result-box {
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex flex-col items-center justify-center min-h-screen p-4">
+
+    <!-- Header Section -->
+    <header class="w-full text-center py-8">
+        <h1 class="text-4xl font-bold text-gray-800">Kidney Scan Classifier</h1>
+        <p class="text-lg text-gray-500 mt-2">A diagnostic aid for medical imaging</p>
+    </header>
+
+    <div class="container mx-auto p-8 bg-white rounded-2xl shadow-lg border border-gray-200">
+        <p class="text-center text-gray-500 mb-8">Upload a CT scan image to predict its type.</p>
+
+        <div id="upload-section" class="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-300 rounded-xl transition-all duration-300 hover:border-blue-500 hover:bg-blue-50 cursor-pointer">
+            <input type="file" id="fileInput" class="hidden" accept="image/*">
+            <svg class="w-16 h-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-4-4v-1a4 4 0 014-4h4l1.59-.53a2 2 0 012.82 2.82L15 15.58A2 2 0 0113.41 17h-2.82a2 2 0 01-1.59.53L7 16z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11V5"></path>
+            </svg>
+            <p class="text-lg text-gray-600 font-medium">Drag & Drop an image or <span class="text-blue-600 font-semibold underline">click to upload</span></p>
+            <p class="text-sm text-gray-400 mt-2">Only image files are accepted.</p>
+        </div>
+
+        <div id="image-preview" class="hidden mt-6 flex justify-center">
+            <img id="uploadedImage" class="rounded-xl shadow-md max-w-full max-h-96 object-contain" src="#" alt="Uploaded Image">
+        </div>
+
+        <div id="result-section" class="mt-6 hidden">
+            <div class="bg-white rounded-xl shadow-inner p-6 border border-gray-200 text-center">
+                <p class="text-xl font-semibold text-gray-700 mb-2">Prediction Result:</p>
+                <p id="prediction-text" class="text-2xl font-bold text-blue-600">...</p>
+            </div>
+        </div>
+
+        <div id="message-box" class="hidden mt-6 p-4 rounded-xl text-center font-medium" role="alert"></div>
+    </div>
+
+    <!-- Footer Section -->
+    <footer class="w-full text-center py-6 mt-8 text-gray-500 text-sm">
+        <p>Created as a DVC/MLFlow project for educational purposes. All rights reserved.</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const uploadSection = document.getElementById('upload-section');
+            const fileInput = document.getElementById('fileInput');
+            const imagePreview = document.getElementById('image-preview');
+            const uploadedImage = document.getElementById('uploadedImage');
+            const resultSection = document.getElementById('result-section');
+            const predictionText = document.getElementById('prediction-text');
+            const messageBox = document.getElementById('message-box');
+
+            // --- Event Listeners for file upload ---
+            uploadSection.addEventListener('click', () => {
+                fileInput.click();
+            });
+
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    processFile(file);
+                }
+            });
+
+            // Drag and drop events
+            uploadSection.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadSection.classList.add('drag-over');
+            });
+
+            uploadSection.addEventListener('dragleave', (e) => {
+                uploadSection.classList.remove('drag-over');
+            });
+
+            uploadSection.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadSection.classList.remove('drag-over');
+                const file = e.dataTransfer.files[0];
+                if (file) {
+                    processFile(file);
+                }
+            });
+
+            function processFile(file) {
+                // Check if the file is an image
+                if (!file.type.startsWith('image/')) {
+                    showMessage('Please upload a valid image file.', 'bg-red-100 text-red-700');
+                    return;
+                }
+
+                // Show the image preview
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    uploadedImage.src = e.target.result;
+                    imagePreview.classList.remove('hidden');
+                    resultSection.classList.add('hidden');
+                    predictWithFlask(e.target.result);
+                };
+                reader.readAsDataURL(file);
+            }
+
+            async function predictWithFlask(imageDataUrl) {
+                showMessage('Analyzing the CT scan...', 'bg-blue-100 text-blue-700');
+
+                // Extract the base64 string from the Data URL
+                const base64Image = imageDataUrl.split(',')[1];
+
+                try {
+                    // Send the base64 string in a JSON payload to your Flask API endpoint
+                    const response = await fetch('/predict', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ image: base64Image })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Server error: ${response.statusText}`);
+                    }
+
+                    const result = await response.json();
+                    
+                    // Display the result received from the backend
+                    if (result && result.image) {
+                        predictionText.textContent = result.image;
+                        resultSection.classList.remove('hidden');
+                        showMessage('Analysis complete!', 'bg-green-100 text-green-700');
+                    } else {
+                        throw new Error('Invalid response from server.');
+                    }
+
+                } catch (error) {
+                    console.error('Prediction failed:', error);
+                    showMessage(`Prediction failed: ${error.message}`, 'bg-red-100 text-red-700');
+                }
+            }
+
+            function showMessage(text, className) {
+                messageBox.textContent = text;
+                messageBox.className = `mt-6 p-4 rounded-xl text-center font-medium ${className}`;
+                messageBox.classList.remove('hidden');
+            }
+        });
+    </script>
+
+</body>
+</html>

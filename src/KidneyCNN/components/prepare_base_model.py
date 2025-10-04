@@ -11,9 +11,9 @@ from KidneyCNN.entity.config_entity import PrepareBaseModelConfig
 # Define the class for preparing the base model for fine-tuning
 class PrepareBaseModel:
     """
-    Handles the preparation of a pre-trained base model for a new task.
-    This includes loading the base model, adding custom layers, and freezing
-    the base model's weights.
+    Handles the preparation of a pre-trained base model for a new task (kidney classification).
+    This includes loading the base model (VGG16), adding a custom classification head, 
+    and freezing the weights of the base layers to prevent corruption during initial training.
     """
     # Initialize the class with a configuration object
     def __init__(self, config: PrepareBaseModelConfig):
@@ -23,17 +23,21 @@ class PrepareBaseModel:
     # Method to get the VGG16 base model from Keras applications
     def get_base_model(self):
         """
-        Loads the VGG16 model with pre-trained weights and without the top
-        classification layer. The model is saved to a file after loading.
+        Loads the VGG16 model with pre-trained ImageNet weights and without the top
+        classification layer (`include_top=False`), making it suitable as a feature extractor.
+        The initial base model is saved to disk.
         """
-        # Load the VGG16 model with specified input shape, weights, and top exclusion
+        # Load the VGG16 model with specified parameters.
         self.model = tf.keras.applications.vgg16.VGG16(
+            # Input shape must match the data generator output (e.g., 224x224x3).
             input_shape=self.config.params_image_size,
+            # Use weights pre-trained on the ImageNet dataset.
             weights=self.config.params_weights,
-            include_top=self.config.params_include_top
+            # Exclude the default 1000-class classification head.
+            include_top=self.config.params_include_top 
         )
 
-        # Save the initial base model
+        # Save the initial base model to disk before modifications.
         self.save_model(path=self.config.base_model_path, model=self.model)
 
 
@@ -41,30 +45,38 @@ class PrepareBaseModel:
     @staticmethod
     def _prepare_full_model(model, classes, freeze_all, freeze_till, learning_rate):
         """
-        Prepares the full model by adding a new classification head and compiling it.
+        Prepares the full transfer learning model by adding a new classification head 
+        (Flatten and Dense layers) and compiling it with an optimizer.
 
         Args:
-            model (tf.keras.Model): The base model to build upon.
-            classes (int): The number of classes for the new classification head.
+            model (tf.keras.Model): The base model (VGG16 without the top) to build upon.
+            classes (int): The number of classes for the new classification head (e.g., 4).
             freeze_all (bool): If True, freezes all layers of the base model.
-            freeze_till (int): If not None, freezes all layers up to a specified index.
+            freeze_till (int): If not None, freezes all layers up to a specified index 
+                                (for partial unfreezing/fine-tuning later).
             learning_rate (float): The learning rate for the optimizer.
         """
-        # Freeze layers of the base model based on the configuration
+        # --- 1. Freezing Logic ---
+        # Freeze layers of the base model based on the configuration to prevent updating 
+        # pre-trained weights during initial training.
         if freeze_all:
             for layer in model.layers:
-                model.trainable = False
+                layer.trainable = False
+        # The 'freeze_till' logic allows unfreezing a specific number of layers from the end.
         elif (freeze_till is not None) and (freeze_till > 0):
+            # Freeze all layers EXCEPT the last 'freeze_till' layers.
             for layer in model.layers[:-freeze_till]:
-                model.trainable = False
+                layer.trainable = False
 
-        # Add a Flatten layer to prepare the output for the Dense layer
+        # --- 2. Classification Head ---
+        # Add a Flatten layer to convert the 3D output of the VGG16 base into 1D feature vector.
         flatten_in = tf.keras.layers.Flatten()(model.output)
         
-        # Add the new classification layer with a 'softmax' activation for multi-class problems
+        # Add the new classification layer (Dense layer).
         prediction = tf.keras.layers.Dense(
             units=classes,
-            activation="softmax"
+            # Use 'softmax' activation for multi-class classification to get probability distribution.
+            activation="softmax" 
         )(flatten_in)
 
         # Create the full model by connecting the base model's input to the new output layer
@@ -73,32 +85,39 @@ class PrepareBaseModel:
             outputs=prediction
         )
 
+        # --- 3. Model Compilation ---
         # Compile the full model with an optimizer, loss function, and metrics
         full_model.compile(
+            # Using Stochastic Gradient Descent (SGD) with a defined learning rate.
             optimizer=tf.keras.optimizers.SGD(learning_rate=learning_rate),
+            # Categorical Crossentropy loss for multi-class classification.
             loss=tf.keras.losses.CategoricalCrossentropy(),
+            # Track accuracy during training.
             metrics=["accuracy"]
         )
 
-        # Print a summary of the new full model's architecture
+        # Print a summary of the new full model's architecture to check the added layers and trainable parameters.
         full_model.summary()
         return full_model
     
 
     def update_base_model(self):
         """
-        Adds the new classification head to the base model and saves the updated model.
+        Coordinates the preparation of the full model by calling the static helper 
+        method and passing the required configuration parameters. 
+        It then saves the final, compiled model to the updated path.
         """
         # Call the helper method to build the full model
         self.full_model = self._prepare_full_model(
             model=self.model,
             classes=self.config.params_classes,
+            # Use configuration value for freezing layers
             freeze_all=True,
             freeze_till=None,
             learning_rate=self.config.params_learning_rate
         )
 
-        # Save the updated, compiled model
+        # Save the updated, compiled model, ready for training
         self.save_model(path=self.config.updated_base_model_path, model=self.full_model)
 
 
